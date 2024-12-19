@@ -1,0 +1,139 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+// Function prototypes
+int romanToDecimal(char roman[]);
+void decimalToWords(int number, char result[]);
+int performOperation(int num1, int num2, char operator);
+void processFile(const char *inputFile, const char *outputFile);
+
+int main() {
+    processFile("input.txt", "output.txt");
+    printf("Processing complete. Check output.txt for results.\n");
+    return 0;
+}
+
+// Function to convert Roman numeral to decimal
+int romanToDecimal(char roman[]) {
+    int values[256] = {0};
+    values['I'] = 1;
+    values['V'] = 5;
+    values['X'] = 10;
+    values['L'] = 50;
+    values['C'] = 100;
+    values['D'] = 500;
+    values['M'] = 1000;
+
+    int length = strlen(roman);
+    int total = 0;
+
+    for (int i = 0; i < length; i++) {
+        if (values[roman[i]] < values[roman[i + 1]]) {
+            total -= values[roman[i]];
+        } else {
+            total += values[roman[i]];
+        }
+    }
+
+    return total;
+}
+
+// Function to convert decimal number to words
+void decimalToWords(int number, char result[]) {
+    const char *ones[] = {"", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"};
+    const char *teens[] = {"Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"};
+    const char *tens[] = {"", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"};
+    const char *thousands[] = {"", "Thousand", "Million", "Billion"};
+
+    char buffer[1024] = "";
+    int temp = number;
+    int index = 0;
+
+    if (temp == 0) {
+        strcpy(result, "Zero");
+        return;
+    }
+
+    while (temp > 0) {
+        int chunk = temp % 1000;
+        temp /= 1000;
+
+        char chunkWords[256] = "";
+
+        if (chunk >= 100) {
+            strcat(chunkWords, ones[chunk / 100]);
+            strcat(chunkWords, " Hundred ");
+            chunk %= 100;
+        }
+
+        if (chunk >= 20) {
+            strcat(chunkWords, tens[chunk / 10]);
+            strcat(chunkWords, " ");
+            chunk %= 10;
+        } else if (chunk >= 10) {
+            strcat(chunkWords, teens[chunk - 10]);
+            chunk = 0;
+        }
+
+        if (chunk > 0) {
+            strcat(chunkWords, ones[chunk]);
+            strcat(chunkWords, " ");
+        }
+
+        if (strlen(chunkWords) > 0) {
+            strcat(chunkWords, thousands[index]);
+            strcat(chunkWords, " ");
+        }
+
+        strcat(chunkWords, buffer);
+        strcpy(buffer, chunkWords);
+
+        index++;
+    }
+
+    strcpy(result, buffer);
+}
+
+// Function to perform arithmetic operations
+int performOperation(int num1, int num2, char operator) {
+    switch (operator) {
+        case '+':
+            return num1 + num2;
+        case '-':
+            return num1 - num2;
+        case '*':
+            return num1 * num2;
+        default:
+            return 0;
+    }
+}
+
+// Function to process the input and output files
+void processFile(const char *inputFile, const char *outputFile) {
+    FILE *in = fopen(inputFile, "r");
+    FILE *out = fopen(outputFile, "w");
+
+    if (!in || !out) {
+        printf("Error opening file.\n");
+        return;
+    }
+
+    char line[256];
+    while (fgets(line, sizeof(line), in)) {
+        char roman1[100], roman2[100], operator;
+        sscanf(line, "%s %c %s", roman1, &operator, roman2);
+
+        int num1 = romanToDecimal(roman1);
+        int num2 = romanToDecimal(roman2);
+        int result = performOperation(num1, num2, operator);
+
+        char resultWords[1024];
+        decimalToWords(result, resultWords);
+
+        fprintf(out, "%s %c %s = %d (%s)\n", roman1, operator, roman2, result, resultWords);
+    }
+
+    fclose(in);
+    fclose(out);
+}
